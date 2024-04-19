@@ -1,0 +1,246 @@
+nameOverride: ""
+fullnameOverride: ""
+
+global:
+  projectName: free5gc
+  userPlaneArchitecture: single  # possible values are "single" and "ulcl"
+  nrf:
+    service:
+      name: nrf-nnrf
+      type: ClusterIP
+      port: "8000"
+      nodePort: "30800"
+  sbi:
+    scheme: http
+  smf:
+    n4if:
+      ipAddress: 10.100.4.100
+  n4network:
+    enabled: true
+    name: n4network
+    type: ipvlan
+    masterIf: ens3
+    subnetIP: 10.100.4.0
+    cidr: 24
+    gatewayIP: 10.100.4.254
+    excludeIP: 10.100.4.254
+
+initcontainers:
+  curl:
+    registry: towards5gs
+    image: initcurl
+    tag: "1.0.0"
+  busybox:
+    image: busybox
+    tag: "1.32.0"
+
+isPfcpNeeded: true
+
+smf:
+  name: smf
+  replicaCount: 1
+  image:
+    name: towards5gs/free5gc-smf
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 80
+  volume:
+    mount: /free5gc/config/
+  podAnnotations:
+    instrumentation.opentelemetry.io/inject-go: 'true'
+    instrumentation.opentelemetry.io/otel-go-auto-target-exe: '/free5gc/smf/smf'
+  imagePullSecrets: []
+  podSecurityContext: {}
+  securityContext: {}
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  readinessProbe:
+    initialDelaySeconds: 0
+    periodSeconds: 1
+    timeoutSeconds: 1
+    failureThreshold:  40
+    successThreshold: 1
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 3
+    successThreshold: 1
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+  ingress:
+    enabled: false
+    annotations: {}
+      # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+    hosts:
+      - host: chart-example.local
+        paths: []
+    tls: []
+    #  - secretName: chart-example-tls
+    #    hosts:
+    #      - chart-example.local
+  configuration:
+    serviceNameList: |-
+      - nsmf-pdusession
+      - nsmf-event-exposure
+      - nsmf-oam
+    configuration: |-
+      smfName: SMF
+      snssaiInfos:
+        - sNssai:
+            sst: 1
+            sd: 010203
+          dnnInfos: # DNN information list
+            - dnn: internet 
+              dns:
+                ipv4: 8.8.8.8
+            - dnn: edge1
+              dns:
+                ipv4: 8.8.8.8
+            - dnn: edge2
+              dns:
+                ipv4: 8.8.8.8
+            - dnn: edge3
+              dns:
+                ipv4: 8.8.8.8
+        - sNssai:
+            sst: 1
+            sd: 112233
+          dnnInfos: # DNN information list
+            - dnn: internet # Data Network Name
+              dns: # the IP address of DNS
+                ipv4: 8.8.8.8
+                ipv6: 2001:4860:4860::8888
+      plmnList: # the list of PLMN IDs that this SMF belongs to (optional, remove this key when unnecessary)
+        - mcc: 208 # Mobile Country Code (3 digits string, digit: 0~9)
+          mnc: 93 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+      userplaneInformation: # list of userplane information
+        upNodes: # information of userplane node (AN or UPF)
+          gNB1: 
+            type: AN 
+          UPF-C:  # the name of the node
+            type: UPF
+            nodeID: 10.100.4.40
+            addr: 10.100.4.40
+            sNssaiUpfInfos: 
+                  - sNssai: 
+                      sst: 1 
+                      sd: 010203 
+                    dnnUpfInfoList: 
+                      - dnn: internet
+                        pools:
+                          - cidr: 10.10.0.0/20
+            interfaces:
+                  - interfaceType: N3 
+                    endpoints: 
+                      - 10.100.3.40
+                    networkInstances:
+                      - internet 
+          UPF-11:  # the name of the node
+            type: UPF
+            nodeID: 10.100.4.11
+            addr: 10.100.4.11
+            sNssaiUpfInfos: 
+                  - sNssai: 
+                      sst: 1 
+                      sd: 010203 
+                    dnnUpfInfoList: 
+                      - dnn: edge1
+                        pools:
+                          - cidr: 10.10.16.0/20
+            interfaces:
+                  - interfaceType: N3 
+                    endpoints: 
+                      - 10.100.3.11
+                    networkInstances:
+                      - edge1 
+          UPF-21:  # the name of the node
+            type: UPF
+            nodeID: 10.100.4.21
+            addr: 10.100.4.21
+            sNssaiUpfInfos: 
+                  - sNssai: 
+                      sst: 1 
+                      sd: 010203 
+                    dnnUpfInfoList: 
+                      - dnn: edge2
+                        pools:
+                          - cidr: 10.10.32.0/20
+            interfaces:
+                  - interfaceType: N3 
+                    endpoints: 
+                      - 10.100.3.21
+                    networkInstances:
+                      - edge2 
+          UPF-31:  # the name of the node
+            type: UPF
+            nodeID: 10.100.4.31
+            addr: 10.100.4.31
+            sNssaiUpfInfos: 
+                  - sNssai: 
+                      sst: 1 
+                      sd: 010203 
+                    dnnUpfInfoList: 
+                      - dnn: edge3
+                        pools:
+                          - cidr: 10.10.48.0/20
+            interfaces:
+                  - interfaceType: N3 
+                    endpoints: 
+                      - 10.100.3.31
+                    networkInstances:
+                      - edge3 
+        links: 
+          - A: gNB1
+            B: UPF-C
+          - A: gNB1
+            B: UPF-11
+          - A: gNB1
+            B: UPF-21
+          - A: gNB1
+            B: UPF-31
+      locality: area1 
+
+      t3591:
+        enable: true     # true or false
+        expireTime: 16s   # default is 6 seconds
+        maxRetryTimes: 3 # the max number of retransmission
+      # retransmission timer for pdu session release command
+      t3592:
+        enable: true     # true or false
+        expireTime: 16s   # default is 6 seconds
+        maxRetryTimes: 3 # the max number of retransmission
+
+    ueRoutingInfo: |-
+      UE1: # Group Name
+        members:
+        - imsi-208930000000003 
+        topology:
+          - A: gNB1
+            B: UPF-C
+          - A: gNB1
+            B: UPF-11
+          - A: gNB1
+            B: UPF-21
+          - A: gNB1
+            B: UPF-31
+        specificPath:
+          - dest: 10.254.185.131/32
+            path: [gNB1, UPF-C]
+
+
+    logger: # log output setting
+      enable: true # true or false
+      level: info # how detailed to output, value: trace, debug, info, warn, error, fatal, panic
+      reportCaller: false # enable the caller report or not, value: true or false

@@ -1,0 +1,109 @@
+global:
+  projectName: free5gc
+  userPlaneArchitecture: single  # possible values are "single" and "ulcl"
+  uesubnet: 10.10.0.0/16
+  n4network:
+    enabled: true
+    name: n4network
+    type: ipvlan
+    masterIf: ens3
+    subnetIP: 10.100.4.0
+    cidr: 24
+    gatewayIP: 10.100.4.254
+    excludeIP: 10.100.4.254
+  n3network:
+    enabled: true
+    name: n3network
+    type: ipvlan
+    masterIf: ens3
+    subnetIP: 10.100.3.0
+    cidr: 24
+    gatewayIP: 10.100.3.254
+    excludeIP: 10.100.3.254
+  n6network:
+    enabled: true
+    name: n6network
+    type: ipvlan
+    masterIf: ens3
+    subnetIP: 192.168.101.0
+    cidr: 24
+    gatewayIP: 192.168.101.100
+    excludeIP: 192.168.101.254
+  n9network:
+    enabled: true
+    name: n9network
+    type: ipvlan
+    masterIf: ens3
+    subnetIP: 10.100.9.0
+    cidr: 24
+    gatewayIP: 10.100.9.254
+    excludeIP: 10.100.9.254
+
+upf11:
+  name: upf11
+  replicaCount: 1
+  image:
+    name: towards5gs/free5gc-upf
+    tag: latest
+    pullPolicy: IfNotPresent
+  configmap:
+    wrapperAdditionalCommands: ""
+    # wrapperAdditionalCommands: |
+    #   echo "123" > /tmp/123
+  volume:
+    mount: /free5gc/config/
+
+  # network paramters
+  n3if:  # GTP-U
+    ipAddress: 10.100.3.11
+  n4if:  # PFCP
+    ipAddress: 10.100.4.11
+  n6if:  # DN
+    ipAddress: 192.168.101.111
+
+  podAnnotations:
+    instrumentation.opentelemetry.io/inject-go: 'true'
+    instrumentation.opentelemetry.io/otel-go-auto-target-exe: '/free5gc/upf/upf'
+  imagePullSecrets: []
+  podSecurityContext: {}
+  securityContext:
+    capabilities:
+      add: ["NET_ADMIN"]
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  readinessProbe:
+    initialDelaySeconds: 0
+    periodSeconds: 1
+    timeoutSeconds: 1
+    failureThreshold:  40
+    successThreshold: 1
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 3
+    successThreshold: 1
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+  configuration:
+    dnnList:
+      - dnn: edge1
+        cidr: 10.10.16.0/20
+        natifname: n6
+
+    logger: # log output setting
+      enable: true # true or false
+      level: info # how detailed to output, value: trace, debug, info, warn, error, fatal, panic
+      reportCaller: false # enable the caller report or not, value: true or false
